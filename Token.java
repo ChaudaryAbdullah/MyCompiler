@@ -20,16 +20,22 @@ class Token {
     private int type;
     private String value;
     private List<State> statePath;
+    private String scope;
 
-    public Token(int type, String value, List<State> statePath) {
+    public Token(int type, String value, List<State> statePath, String scope) {
         this.type = type;
         this.value = value;
         this.statePath = statePath;
+        this.scope = scope;
+    }
+    public Token(int type, String value, List<State> statePath) {
+        this(type, value, statePath, "Global");
     }
 
     public int getType() { return type; }
     public String getValue() { return value; }
     public List<State> getStatePath() { return statePath; }
+    public String getScope() {return scope;}
 
     private String getTypeName() {
         return switch (type) {

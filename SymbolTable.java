@@ -24,7 +24,7 @@ class SymbolTable {
                     addEntry(token.getValue(), "Keyword", "Global", "-");
                     break;
                 case Token.IDENTIFIER:
-                    addEntry(token.getValue(), "Identifier", "Local", "-");
+                    addEntry(token.getValue(), "Identifier", token.getScope(), "-");
                     break;
                 case Token.INTEGER:
                     addEntry(token.getValue(), "Integer", "Constant", token.getValue());
