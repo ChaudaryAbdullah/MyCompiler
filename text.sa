@@ -1,8 +1,8 @@
 num x = 10;
 num yc = 4.47754908^a;
 
-()
-output()
+(
+output(x)
 
 {
     xsd=2

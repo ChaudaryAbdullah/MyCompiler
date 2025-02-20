@@ -47,16 +47,12 @@ class Lexer {
             }
             
             if (currentChar == '{') {
-            	tokens.add(new Token(Token.PUNCTUATOR, String.valueOf(currentChar), statePath));
-                scopeDepth++;
                 scopeStack.push(new HashSet<>());
                 position++;
                 charPosition++;
                 continue;
             }
             if (currentChar == '}') {
-            	tokens.add(new Token(Token.PUNCTUATOR, String.valueOf(currentChar), statePath));
-                scopeDepth = Math.max(0, scopeDepth - 1);
                 scopeStack.pop();
                 position++;
                 charPosition++;
