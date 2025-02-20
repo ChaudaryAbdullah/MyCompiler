@@ -14,11 +14,11 @@ class Lexer {
     private int lineNumber;
     private int charPosition;
 
-    private static final Set<String> KEYWORDS = Set.of("read", "write", "if", "else", "loop", "end");
-    private static final Set<String> DATATYPE = Set.of("num", "bool", "char", "dec");
-    private static final Set<String> BOOLEAN_VALUES = Set.of("true", "false");
-    private static final Set<String> OPERATORS = Set.of("=", "+", "-", "*", "/", "%", "^");
-    private static final Set<Character> PUNCTUATORS = Set.of('(', ')', '{', '}', ';', ',');
+    public static final Set<String> KEYWORDS = Set.of("read", "write", "if", "else", "loop", "end");
+    public static final Set<String> DATATYPE = Set.of("num", "bool", "char", "dec");
+    public static final Set<String> BOOLEAN_VALUES = Set.of("true", "false");
+    public static final Set<String> OPERATORS = Set.of("=", "+", "-", "*", "/", "%", "^");
+    public static final Set<Character> PUNCTUATORS = Set.of('(', ')', '{', '}', ';', ',');
     
     public Lexer(String input) {
         this.input = input;
@@ -47,12 +47,16 @@ class Lexer {
             }
             
             if (currentChar == '{') {
+            	tokens.add(new Token(Token.PUNCTUATOR, String.valueOf(currentChar), statePath));
+                scopeDepth++;
                 scopeStack.push(new HashSet<>());
                 position++;
                 charPosition++;
                 continue;
             }
             if (currentChar == '}') {
+            	tokens.add(new Token(Token.PUNCTUATOR, String.valueOf(currentChar), statePath));
+                scopeDepth = Math.max(0, scopeDepth - 1);
                 scopeStack.pop();
                 position++;
                 charPosition++;
@@ -66,7 +70,7 @@ class Lexer {
             
             if (Character.isLetter(currentChar)) {
                 int start = position;
-                statePath.add(new State(stateCounter++, false, currentChar));
+                //statePath.add(new State(stateCounter++, false, currentChar));
         
                 boolean hasUppercase = Character.isUpperCase(currentChar);
                 
@@ -82,14 +86,12 @@ class Lexer {
                 }
         
                 String word = input.substring(start, position);
-        
-                // If word contains an uppercase letter, throw error
+
                 if (hasUppercase) {
                     throw new IllegalArgumentException("Error: At line number: " + lineNumber +
                         " on index: " + position + " Uppercase word '" + word + "'");
                 }
-        
-                // If "input" or "output" is followed by '(', process it
+
                 if ((word.equals("input") || word.equals("output")) && position < input.length() && input.charAt(position) == '(') {
                     Token ioToken = processIOFunction(word);
                     if (ioToken != null) {
@@ -97,11 +99,9 @@ class Lexer {
                     }
                     continue;
                 }
-        
-                // Determine scope
+
                 String scope = (scopeDepth == 0) ? "Global" : "Local";
-        
-                // Check if it's a variable assignment
+
                 if (position < input.length() && input.charAt(position) == '=') {
                     if (scopeDepth == 0) {
                         globalVariables.add(word);
@@ -109,11 +109,9 @@ class Lexer {
                         scopeStack.peek().add(word);
                     }
                 }
-        
-                // Store identifier with correct scope
+
                 tokens.add(new Token(Token.IDENTIFIER, word, statePath, scope));
-        
-                // Debug output
+
                 System.out.println("Variable: " + word + ", Scope Depth: " + scopeDepth);
                 continue;
             }
@@ -156,7 +154,7 @@ class Lexer {
     }
 
 	private void scanMultilineComment() {
-		position += 2; // Skip "/*"
+		position += 2;
 		
 		while (position < length - 1 && !(input.charAt(position) == '*' && input.charAt(position + 1) == '/')) {
             if (input.charAt(position) == '\n') {
@@ -171,7 +169,7 @@ class Lexer {
 			throw new IllegalArgumentException("Error: MultiComment didn't completed at line: "+lineNumber +" on index: " + charPosition);
 		}
 	
-		position += 2; // Skip "*/"
+		position += 2;
 	}
 
 
@@ -199,9 +197,9 @@ class Lexer {
             try {
                 BigDecimal roundedValue = new BigDecimal(numberStr)
                     .setScale(5, RoundingMode.HALF_UP);
-                numberStr = roundedValue.toPlainString();  // Ensure no scientific notation
+                numberStr = roundedValue.toPlainString();
             } catch (NumberFormatException e) {
-                // Handle invalid decimal format if needed
+                
             }
         }
 
@@ -215,7 +213,7 @@ class Lexer {
         statePath.add(startState);
 
         if (position < length && input.charAt(position) == '\'') {
-            return null; // Handle invalid case: lone single quote
+            return null;
         }
 
         if (position < length - 1 && input.charAt(position + 1) == '\'') {
@@ -223,14 +221,14 @@ class Lexer {
             State charState = new State(stateCounter++, false, value);
             statePath.add(charState);
 
-            position++; // Move to closing quote
+            position++;
             charPosition++;
-            State finalState = new State(stateCounter++, true, '\''); // Explicit final state
+            State finalState = new State(stateCounter++, true, '\'');
             statePath.add(finalState);
             
-            position++; // Move past closing quote
+            position++;
             charPosition++;
-            startState.addTransition(value, charState); // Add transitions
+            startState.addTransition(value, charState);
             charState.addTransition('\'', finalState);
 
             return new Token(Token.CHARACTER, String.valueOf(value), statePath);
@@ -270,7 +268,6 @@ class Lexer {
 		
 		String value = input.substring(start, position);
 	
-		// **Ensure only IDENTIFIERS get this check, not keywords or datatypes**
 		if (!KEYWORDS.contains(value) && !DATATYPE.contains(value)) {
 			if (!value.equals(value.toLowerCase())) {
 				throw new IllegalArgumentException("Error: At line number: " +lineNumber+" on index: "+charPosition+"Variable names cannot contain uppercase letters: " + value);
@@ -294,7 +291,7 @@ class Lexer {
         List<State> statePath = new ArrayList<>();
         statePath.add(new State(stateCounter++, false, '('));
 
-        position++; // Move past '('
+        position++;
         int contentStart = position;
 
         while (position < length && input.charAt(position) != ')') {
@@ -311,7 +308,7 @@ class Lexer {
 
         statePath.add(new State(stateCounter++, true, ')'));
         String content = input.substring(contentStart, position).trim();
-        position++; // Move past ')'
+        position++;
 
         if (functionType.equals("input")) {
             if (!content.isEmpty()) {
@@ -325,7 +322,7 @@ class Lexer {
             }
         }
 
-        return null; // Return null to prevent empty tokens
+        return null;
     }
 
 

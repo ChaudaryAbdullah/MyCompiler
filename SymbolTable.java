@@ -54,7 +54,7 @@ class SymbolTable {
                     addEntry(token.getValue(), "INPUT", "Global", "-");
                     break;
                 case Token.EOF:
-                    // No need to add EOF to the table
+                    
                     break;
                 default:
                     addEntry(token.getValue(), "Unknown", "Unknown", "-");
