@@ -33,6 +33,7 @@ class Lexer {
     }
 
     public List<Token> tokenize() {
+        int scopeDepth = 0;
         List<Token> tokens = new ArrayList<>();
         while (position < length) {
             char currentChar = input.charAt(position);
@@ -46,12 +47,16 @@ class Lexer {
             }
             
             if (currentChar == '{') {
+            	tokens.add(new Token(Token.PUNCTUATOR, String.valueOf(currentChar), statePath));
+                scopeDepth++;
                 scopeStack.push(new HashSet<>());
                 position++;
                 charPosition++;
                 continue;
             }
             if (currentChar == '}') {
+            	tokens.add(new Token(Token.PUNCTUATOR, String.valueOf(currentChar), statePath));
+                scopeDepth = Math.max(0, scopeDepth - 1);
                 scopeStack.pop();
                 position++;
                 charPosition++;
@@ -65,12 +70,11 @@ class Lexer {
             
             if (Character.isLetter(currentChar)) {
                 int start = position;
-                
                 statePath.add(new State(stateCounter++, false, currentChar));
-
+        
                 boolean hasUppercase = Character.isUpperCase(currentChar);
-
-                while (position < length && Character.isLetter(input.charAt(position))) {
+                
+                while (position < input.length() && Character.isLetterOrDigit(input.charAt(position))) {
                     char transitionChar = input.charAt(position);
                     if (Character.isUpperCase(transitionChar)) {
                         hasUppercase = true;
@@ -79,27 +83,42 @@ class Lexer {
                         statePath.add(new State(stateCounter++, false, transitionChar));
                     }
                     position++;
-                    charPosition++;
                 }
-
+        
                 String word = input.substring(start, position);
-
-                // If the word contains an uppercase letter, print an error and continue
+        
+                // If word contains an uppercase letter, throw error
                 if (hasUppercase) {
-                    throw new IllegalArgumentException("Error: At line number: "+lineNumber+" on index: "+charPosition+" Uppercase word '" + word );
+                    throw new IllegalArgumentException("Error: At line number: " + lineNumber +
+                        " on index: " + position + " Uppercase word '" + word + "'");
                 }
-
+        
                 // If "input" or "output" is followed by '(', process it
-                if ((word.equals("input") || word.equals("output")) && position < length && input.charAt(position) == '(') {
+                if ((word.equals("input") || word.equals("output")) && position < input.length() && input.charAt(position) == '(') {
                     Token ioToken = processIOFunction(word);
                     if (ioToken != null) {
                         tokens.add(ioToken);
                     }
                     continue;
                 }
-
-                // Otherwise, treat as an identifier
-                tokens.add(new Token(Token.IDENTIFIER, word, statePath));
+        
+                // Determine scope
+                String scope = (scopeDepth == 0) ? "Global" : "Local";
+        
+                // Check if it's a variable assignment
+                if (position < input.length() && input.charAt(position) == '=') {
+                    if (scopeDepth == 0) {
+                        globalVariables.add(word);
+                    } else {
+                        scopeStack.peek().add(word);
+                    }
+                }
+        
+                // Store identifier with correct scope
+                tokens.add(new Token(Token.IDENTIFIER, word, statePath, scope));
+        
+                // Debug output
+                System.out.println("Variable: " + word + ", Scope Depth: " + scopeDepth);
                 continue;
             }
 
@@ -108,24 +127,9 @@ class Lexer {
             if (currentChar == '/' && peekNext() == '/') { scanComment(); continue; }
             if (currentChar == '/' && peekNext() == '*') { scanMultilineComment(); continue; }
             
-            if (Character.isLowerCase(currentChar)) {
-                int start = position;
-                while (position < length && Character.isLetterOrDigit(input.charAt(position))) {
-                    position++;
-                    charPosition++;
-                }
-                String variableName = input.substring(start, position);
-                
-                if (position < length && input.charAt(position) == '=') {
-                    if (scopeStack.size() == 1) {
-                        globalVariables.add(variableName);
-                    } else {
-                        scopeStack.peek().add(variableName);
-                    }
-                }
-                tokens.add(new Token(Token.IDENTIFIER, variableName, statePath));
-                continue;
-            }
+            
+
+        
             
             if (OPERATORS.contains(String.valueOf(currentChar))) {
                 tokens.add(new Token(Token.OPERATOR, String.valueOf(currentChar), statePath));
@@ -285,7 +289,7 @@ class Lexer {
 			return new Token(Token.DATATYPE, value, statePath);
 		}
 	
-		return new Token(Token.IDENTIFIER, value, statePath);
+		return null;
 	}
 
     
